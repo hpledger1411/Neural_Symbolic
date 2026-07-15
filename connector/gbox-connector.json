@@ -10,17 +10,6 @@
   "schemes": ["https"],
   "consumes": ["application/json"],
   "produces": ["application/json"],
-  "securityDefinitions": {
-    "api_key": {
-      "type": "apiKey",
-      "name": "X-API-Key",
-      "in": "header",
-      "description": "API key issued to the connector. Set GBOX_API_KEY on the server."
-    }
-  },
-  "security": [
-    { "api_key": [] }
-  ],
   "paths": {
     "/api/learning/insights": {
       "get": {

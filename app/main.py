@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 
-from app.auth import require_api_key
 from app.db import init_db
 from app.database import init_models
 from app.routers import shops, ml, learning, decisions, drive, data_pool, shopify_sync
@@ -19,12 +18,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(
-    title="Gbox Virtual Environment",
-    version="0.1.0",
-    lifespan=lifespan,
-    dependencies=[Depends(require_api_key)],
-)
+app = FastAPI(title="Gbox Virtual Environment", version="0.1.0", lifespan=lifespan)
 app.include_router(shops.router)
 app.include_router(ml.router)
 app.include_router(learning.router)

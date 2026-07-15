@@ -55,6 +55,25 @@ uvicorn app.main:app --port 8000
 The app creates all tables on startup (`init_models`). With SQLite, no migration
 step is required for local runs.
 
+## Docker
+
+A `Dockerfile` and `docker-compose.yml` are provided. Compose runs the FastAPI
+app with a PostgreSQL service and applies Alembic migrations on startup.
+
+```bash
+docker compose up --build
+# app:  http://localhost:8000
+# psql: localhost:5432 (user/pass/db = gbox)
+```
+
+The app reads `GBOX_DATABASE_URL` for PostgreSQL. If unset, it falls back to a
+local SQLite file, so the image also runs standalone:
+
+```bash
+docker build -t gbox .
+docker run -p 8000:8000 gbox
+```
+
 ## API
 
 ### Learning
@@ -96,24 +115,6 @@ step is required for local runs.
 
 ### Legacy
 - `/shops`, `/predictions`, `/traces`, `/feedback`, `/insights` (stdlib-sqlite)
-
-## Authentication
-
-Protected routes require the `X-API-Key` header. Set the expected key via the
-`GBOX_API_KEY` environment variable; when it is unset, auth is **disabled**
-(local dev / tests).
-
-```bash
-export GBOX_API_KEY=your-secret-key
-uvicorn app.main:app --port 8000
-```
-
-```bash
-curl -H "X-API-Key: $GBOX_API_KEY" http://localhost:8000/api/learning/insights
-```
-
-Exempt paths (no key required): `/health` and `/webhooks/*` (Shopify webhooks
-are authenticated by HMAC signature in production, not the API key).
 
 ## Power Automate
 
