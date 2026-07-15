@@ -1,0 +1,383 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Gbox Virtual Environment",
+    "description": "Custom connector for the Gbox neuro-symbolic predictive engine. Provides learning insights, decision automation, and the VirtualDrive artifact store. Actions branch on the `action` field returned by /api/decisions (reorder | hold | review).",
+    "version": "1.0.0"
+  },
+  "host": "YOUR_GBOX_HOST",
+  "basePath": "/",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "api_key": {
+      "type": "apiKey",
+      "name": "X-API-Key",
+      "in": "header",
+      "description": "API key issued to the connector. Set GBOX_API_KEY on the server."
+    }
+  },
+  "security": [
+    { "api_key": [] }
+  ],
+  "paths": {
+    "/api/learning/insights": {
+      "get": {
+        "summary": "Get learning insights",
+        "operationId": "GetLearningInsights",
+        "description": "Aggregate model_performance into overall accuracy, worst products, neural weight trend, and drift alerts.",
+        "parameters": [
+          {
+            "name": "shop_id",
+            "in": "query",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "name": "since_days",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "default": 30,
+            "minimum": 1,
+            "maximum": 365
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Learning insights",
+            "schema": { "$ref": "#/definitions/LearningInsights" }
+          }
+        }
+      }
+    },
+    "/api/decisions": {
+      "post": {
+        "summary": "Trigger a decision",
+        "operationId": "CreateDecision",
+        "description": "Runs Forecaster + RulesEngine and returns an action (reorder/hold/review) with explanation.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": { "$ref": "#/definitions/DecisionRequest" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Decision result",
+            "schema": { "$ref": "#/definitions/DecisionResponse" }
+          }
+        }
+      }
+    },
+    "/api/drive": {
+      "get": {
+        "summary": "List VirtualDrive objects",
+        "operationId": "ListDriveObjects",
+        "parameters": [
+          { "name": "kind", "in": "query", "required": false, "type": "string" }
+        ],
+        "responses": { "200": { "description": "Objects", "schema": { "type": "array", "items": { "$ref": "#/definitions/DriveObjectMeta" } } } }
+      }
+    },
+    "/api/drive/latest/{kind}": {
+      "get": {
+        "summary": "Get latest VirtualDrive object of a kind",
+        "operationId": "GetLatestDriveObject",
+        "parameters": [
+          { "name": "kind", "in": "path", "required": true, "type": "string" }
+        ],
+        "responses": { "200": { "description": "Object metadata", "schema": { "$ref": "#/definitions/DriveObjectMeta" } } }
+      }
+    },
+    "/api/drive/{path}": {
+      "put": {
+        "summary": "Write a VirtualDrive object",
+        "operationId": "PutDriveObject",
+        "parameters": [
+          { "name": "path", "in": "path", "required": true, "type": "string" },
+          { "name": "body", "in": "body", "required": true, "schema": { "$ref": "#/definitions/PutDriveRequest" } }
+        ],
+        "responses": { "200": { "description": "Saved metadata", "schema": { "$ref": "#/definitions/DriveObjectMeta" } } }
+      },
+      "get": {
+        "summary": "Get VirtualDrive object metadata",
+        "operationId": "GetDriveObject",
+        "parameters": [
+          { "name": "path", "in": "path", "required": true, "type": "string" }
+        ],
+        "responses": { "200": { "description": "Object metadata", "schema": { "$ref": "#/definitions/DriveObjectMeta" } } }
+      },
+      "delete": {
+        "summary": "Delete a VirtualDrive object",
+        "operationId": "DeleteDriveObject",
+        "parameters": [
+          { "name": "path", "in": "path", "required": true, "type": "string" }
+        ],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/api/drive/{path}/data": {
+      "get": {
+        "summary": "Get VirtualDrive object data (base64)",
+        "operationId": "GetDriveObjectData",
+        "parameters": [
+          { "name": "path", "in": "path", "required": true, "type": "string" }
+        ],
+        "responses": { "200": { "description": "Base64 data" } }
+      }
+    },
+    "/feedback": {
+      "post": {
+        "summary": "Submit human feedback",
+        "operationId": "CreateFeedback",
+        "parameters": [
+          { "name": "body", "in": "body", "required": true, "schema": { "$ref": "#/definitions/FeedbackRequest" } }
+        ],
+        "responses": { "200": { "description": "Feedback id" } }
+      }
+    },
+    "/api/data-pool/files": {
+      "put": {
+        "summary": "Store a Data Pool file",
+        "operationId": "PutDataPoolFile",
+        "parameters": [
+          { "name": "body", "in": "body", "required": true, "schema": { "$ref": "#/definitions/FilePut" } }
+        ],
+        "responses": { "200": { "description": "Stored" } }
+      }
+    },
+    "/api/data-pool/files/{path}": {
+      "get": {
+        "summary": "Get a Data Pool file (base64)",
+        "operationId": "GetDataPoolFile",
+        "parameters": [
+          { "name": "path", "in": "path", "required": true, "type": "string" }
+        ],
+        "responses": { "200": { "description": "Base64 data" } }
+      }
+    },
+    "/api/data-pool/datasets": {
+      "post": {
+        "summary": "Register a dataset",
+        "operationId": "RegisterDataset",
+        "parameters": [
+          { "name": "body", "in": "body", "required": true, "schema": { "$ref": "#/definitions/DatasetPut" } }
+        ],
+        "responses": { "200": { "description": "Registered" } }
+      },
+      "get": {
+        "summary": "List datasets",
+        "operationId": "ListDatasets",
+        "parameters": [
+          { "name": "kind", "in": "query", "required": false, "type": "string" }
+        ],
+        "responses": { "200": { "description": "Datasets" } }
+      }
+    },
+    "/api/data-pool/traces": {
+      "put": {
+        "summary": "Store an execution trace",
+        "operationId": "PutTrace",
+        "parameters": [
+          { "name": "body", "in": "body", "required": true, "schema": { "$ref": "#/definitions/TracePut" } }
+        ],
+        "responses": { "200": { "description": "Stored" } }
+      }
+    },
+    "/api/data-pool/search": {
+      "get": {
+        "summary": "Search the Data Pool",
+        "operationId": "SearchDataPool",
+        "parameters": [
+          { "name": "q", "in": "query", "required": true, "type": "string" },
+          { "name": "limit", "in": "query", "required": false, "type": "integer" }
+        ],
+        "responses": { "200": { "description": "Search results" } }
+      }
+    },
+    "/shops/{shopId}/sync": {
+      "post": {
+        "summary": "Sync Shopify products, orders, inventory into Data Pool",
+        "operationId": "SyncShop",
+        "parameters": [
+          { "name": "shopId", "in": "path", "required": true, "type": "integer" }
+        ],
+        "responses": { "200": { "description": "Counts synced" } }
+      }
+    },
+    "/webhooks/shopify/orders/create": {
+      "post": {
+        "summary": "Shopify order creation webhook",
+        "operationId": "ShopifyOrderWebhook",
+        "parameters": [
+          { "name": "body", "in": "body", "required": true, "schema": { "type": "object" } }
+        ],
+        "responses": { "200": { "description": "Trace id" } }
+      }
+    },
+    "/webhooks/shopify/inventory_levels/update": {
+      "post": {
+        "summary": "Shopify inventory change webhook",
+        "operationId": "ShopifyInventoryWebhook",
+        "parameters": [
+          { "name": "body", "in": "body", "required": true, "schema": { "type": "object" } }
+        ],
+        "responses": { "200": { "description": "Trace id" } }
+      }
+    },
+    "/webhooks/shopify/products/update": {
+      "post": {
+        "summary": "Shopify product update webhook",
+        "operationId": "ShopifyProductWebhook",
+        "parameters": [
+          { "name": "body", "in": "body", "required": true, "schema": { "type": "object" } }
+        ],
+        "responses": { "200": { "description": "Trace id" } }
+      }
+    },
+    "/api/learning/evaluate": {
+      "post": {
+        "summary": "Score pending forecasts against actuals",
+        "operationId": "EvaluateLearning",
+        "parameters": [
+          { "name": "body", "in": "body", "required": true, "schema": { "$ref": "#/definitions/EvaluateRequest" } }
+        ],
+        "responses": { "200": { "description": "Count evaluated" } }
+      }
+    }
+  },
+  "definitions": {
+    "LearningInsights": {
+      "type": "object",
+      "properties": {
+        "shop_id": { "type": "integer" },
+        "since_days": { "type": "integer" },
+        "overall_accuracy": { "type": "number" },
+        "worst_performing_products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "product_id": { "type": "string" },
+              "mean_accuracy": { "type": "number" },
+              "samples": { "type": "integer" }
+            }
+          }
+        },
+        "neural_weight_trend": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "date": { "type": "string" },
+              "mean_accuracy": { "type": "number" }
+            }
+          }
+        },
+        "drift_alert_count": { "type": "integer" },
+        "recommendations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "DecisionRequest": {
+      "type": "object",
+      "required": ["shop_id", "product_id", "history"],
+      "properties": {
+        "shop_id": { "type": "integer" },
+        "product_id": { "type": "string" },
+        "history": { "type": "array", "items": { "type": "number" } },
+        "price": { "type": "number" },
+        "inventory_qty": { "type": "integer" },
+        "model_name": { "type": "string" },
+        "model_version": { "type": "string" }
+      }
+    },
+    "DecisionResponse": {
+      "type": "object",
+      "properties": {
+        "product_id": { "type": "string" },
+        "predicted_demand": { "type": "number" },
+        "confidence": { "type": "number" },
+        "action": { "type": "string", "enum": ["reorder", "hold", "review"] },
+        "explanation": { "type": "string" },
+        "triggered_rules": { "type": "array", "items": { "type": "string" } },
+        "trace_id": { "type": "string" }
+      }
+    },
+    "DriveObjectMeta": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "path": { "type": "string" },
+        "kind": { "type": "string" },
+        "content_type": { "type": "string" },
+        "size_bytes": { "type": "integer" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      }
+    },
+    "PutDriveRequest": {
+      "type": "object",
+      "required": ["path", "kind", "data"],
+      "properties": {
+        "path": { "type": "string" },
+        "kind": { "type": "string" },
+        "data": { "type": "string", "description": "Base64-encoded bytes" },
+        "content_type": { "type": "string" }
+      }
+    },
+    "FeedbackRequest": {
+      "type": "object",
+      "properties": {
+        "shop_id": { "type": "integer" },
+        "prediction_id": { "type": "integer" },
+        "trace_id": { "type": "string" },
+        "rating": { "type": "integer" },
+        "label": { "type": "string" },
+        "comment": { "type": "string" },
+        "source": { "type": "string" }
+      }
+    },
+    "FilePut": {
+      "type": "object",
+      "required": ["path", "data"],
+      "properties": {
+        "path": { "type": "string" },
+        "data": { "type": "string", "description": "Base64-encoded bytes" },
+        "content_type": { "type": "string" }
+      }
+    },
+    "DatasetPut": {
+      "type": "object",
+      "required": ["name", "kind", "file_path"],
+      "properties": {
+        "name": { "type": "string" },
+        "kind": { "type": "string" },
+        "file_path": { "type": "string" },
+        "meta": { "type": "object" }
+      }
+    },
+    "TracePut": {
+      "type": "object",
+      "required": ["trace_id", "payload"],
+      "properties": {
+        "trace_id": { "type": "string" },
+        "payload": { "type": "object" }
+      }
+    },
+    "EvaluateRequest": {
+      "type": "object",
+      "properties": {
+        "shop_id": { "type": "integer" },
+        "actuals": {
+          "type": "object",
+          "additionalProperties": { "type": "number" },
+          "description": "product_id -> realized demand"
+        }
+      }
+    }
+  }
+}
